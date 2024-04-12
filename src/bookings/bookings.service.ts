@@ -1,26 +1,118 @@
-import { Injectable } from '@nestjs/common';
-import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingDto } from './dto/update-booking.dto';
+import { HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
+import { CreateBookingDto } from "./dto/create-booking.dto";
+import { UpdateBookingDto } from "./dto/update-booking.dto";
+import { PrismaService } from "src/prisma/prisma.service";
+import {
+  HttpException,
+  InternalServerErrorException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 @Injectable()
 export class BookingsService {
-  create(createBookingDto: CreateBookingDto) {
-    return 'This action adds a new booking';
+  constructor(private prisma: PrismaService) {}
+
+  // Creating a booking
+  async create(createBookingDto: CreateBookingDto) {
+    try {
+      return await this.prisma.bookings.create({
+        data: createBookingDto,
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        throw new BadRequestException({
+          error: "A booking with the same name already exists.",
+        });
+      } else if (error instanceof HttpException) {
+        throw error;
+      } else {
+        throw new InternalServerErrorException();
+      }
+    }
   }
 
-  findAll() {
-    return `This action returns all bookings`;
+  // Fetching All Bookings
+  async findAll() {
+    try {
+      return await this.prisma.bookings.findMany();
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} booking`;
+  // Fetching Single Booking
+  async findOne(id: string) {
+    try {
+      return await this.prisma.bookings.findUnique({
+        where: { id },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
   }
 
-  update(id: number, updateBookingDto: UpdateBookingDto) {
-    return `This action updates a #${id} booking`;
+  // Updateing a booking
+  async update(id: string, updateBookingDto: UpdateBookingDto) {
+    try {
+      const existingBooking = await this.prisma.bookings.findUnique({
+        where: { id },
+      });
+
+      if (!existingBooking) {
+        throw new NotFoundException(`Booking with ID ${id} not found.`);
+      }
+
+      const isBodyEmpty = Object.keys(updateBookingDto).length === 0;
+      const noChangesFound = Object.entries(updateBookingDto).every(
+        ([key, value]) => existingBooking[key] === value
+      );
+
+      if (isBodyEmpty || noChangesFound) {
+        throw new BadRequestException("No changes found to update.");
+      }
+
+      const updatedBooking = await this.prisma.bookings.update({
+        where: { id },
+        data: updateBookingDto,
+      });
+
+      return {
+        status: HttpStatus.OK,
+        message: "Booking updated successfully.",
+        booking: updatedBooking,
+      };
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === "P2002") {
+          throw new BadRequestException(
+            "A booking with the same name already exists."
+          );
+        }
+        throw new BadRequestException(error.message);
+      } else if (error.response) {
+        throw new HttpException(error.response, error.status);
+      } else {
+        throw new InternalServerErrorException();
+      }
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} booking`;
+  // Deleting a booking
+  async remove(id: string) {
+    try {
+      const existingBooking = await this.prisma.bookings.findUnique({
+        where: { id },
+      });
+
+      if (!existingBooking) {
+        throw new NotFoundException(`Booking with ID ${id} not found.`);
+      }
+      return await this.prisma.bookings.delete({
+        where: { id },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
   }
 }
