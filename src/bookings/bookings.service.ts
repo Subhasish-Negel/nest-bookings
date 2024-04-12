@@ -42,7 +42,7 @@ export class BookingsService {
   }
 
   // Fetching Single Booking
-  async findOne(id: string) {
+  async findOne(id: number) {
     const existingBooking = await this.prisma.bookings.findUnique({
       where: { id },
     });
@@ -60,7 +60,7 @@ export class BookingsService {
   }
 
   // Updateing a booking
-  async update(id: string, updateBookingDto: UpdateBookingDto) {
+  async update(id: number, updateBookingDto: UpdateBookingDto) {
     const existingBooking = await this.prisma.bookings.findUnique({
       where: { id },
     });
@@ -106,7 +106,7 @@ export class BookingsService {
   }
 
   // Deleting a booking
-  async remove(id: string) {
+  async remove(id: number) {
     const existingBooking = await this.prisma.bookings.findUnique({
       where: { id },
     });
