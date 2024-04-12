@@ -6,11 +6,9 @@ import {
   ValidationError,
   ValidationPipe,
 } from "@nestjs/common";
-import { ValidateObjectIdPipe } from "src/pipes/validate-objectID.pipe";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidateObjectIdPipe());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

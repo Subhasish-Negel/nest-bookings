@@ -43,6 +43,13 @@ export class BookingsService {
 
   // Fetching Single Booking
   async findOne(id: string) {
+    const existingBooking = await this.prisma.bookings.findUnique({
+      where: { id },
+    });
+
+    if (!existingBooking) {
+      throw new NotFoundException(`Booking with ID ${id} not found.`);
+    }
     try {
       return await this.prisma.bookings.findUnique({
         where: { id },
@@ -54,24 +61,24 @@ export class BookingsService {
 
   // Updateing a booking
   async update(id: string, updateBookingDto: UpdateBookingDto) {
+    const existingBooking = await this.prisma.bookings.findUnique({
+      where: { id },
+    });
+
+    if (!existingBooking) {
+      throw new NotFoundException(`Booking with ID ${id} not found.`);
+    }
+
+    const isBodyEmpty = Object.keys(updateBookingDto).length === 0;
+    const noChangesFound = Object.entries(updateBookingDto).every(
+      ([key, value]) => existingBooking[key] === value
+    );
+
+    if (isBodyEmpty || noChangesFound) {
+      throw new BadRequestException("No changes found to update.");
+    }
+
     try {
-      const existingBooking = await this.prisma.bookings.findUnique({
-        where: { id },
-      });
-
-      if (!existingBooking) {
-        throw new NotFoundException(`Booking with ID ${id} not found.`);
-      }
-
-      const isBodyEmpty = Object.keys(updateBookingDto).length === 0;
-      const noChangesFound = Object.entries(updateBookingDto).every(
-        ([key, value]) => existingBooking[key] === value
-      );
-
-      if (isBodyEmpty || noChangesFound) {
-        throw new BadRequestException("No changes found to update.");
-      }
-
       const updatedBooking = await this.prisma.bookings.update({
         where: { id },
         data: updateBookingDto,
@@ -100,17 +107,23 @@ export class BookingsService {
 
   // Deleting a booking
   async remove(id: string) {
+    const existingBooking = await this.prisma.bookings.findUnique({
+      where: { id },
+    });
+
+    if (!existingBooking) {
+      throw new NotFoundException(`Booking with ID ${id} not found.`);
+    }
     try {
-      const existingBooking = await this.prisma.bookings.findUnique({
+      const deletedBooking = await this.prisma.bookings.delete({
         where: { id },
       });
 
-      if (!existingBooking) {
-        throw new NotFoundException(`Booking with ID ${id} not found.`);
-      }
-      return await this.prisma.bookings.delete({
-        where: { id },
-      });
+      return {
+        status: HttpStatus.OK,
+        message: "Booking Record Deleted Succesfully.",
+        booking: deletedBooking,
+      };
     } catch (error) {
       throw new InternalServerErrorException();
     }

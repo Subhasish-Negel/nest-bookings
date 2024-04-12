@@ -10,6 +10,7 @@ import {
 import { BookingsService } from "./bookings.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
 import { UpdateBookingDto } from "./dto/update-booking.dto";
+import { ValidateObjectIdPipe } from "src/pipes/validate-objectID.pipe";
 
 @Controller("bookings")
 export class BookingsController {
@@ -26,17 +27,20 @@ export class BookingsController {
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
+  findOne(@Param("id", new ValidateObjectIdPipe()) id: string) {
     return this.bookingsService.findOne(id);
   }
 
   @Patch(":id")
-  update(@Param("id") id: string, @Body() updateBookingDto: UpdateBookingDto) {
+  update(
+    @Param("id", new ValidateObjectIdPipe()) id: string,
+    @Body() updateBookingDto: UpdateBookingDto
+  ) {
     return this.bookingsService.update(id, updateBookingDto);
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
+  remove(@Param("id", new ValidateObjectIdPipe()) id: string) {
     return this.bookingsService.remove(id);
   }
 }
